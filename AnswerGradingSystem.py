@@ -62,7 +62,7 @@ def extract_text_from_image(image_path: str) -> str:
 def load_words():
     """Load valid English words from file."""
     try:
-        with open('/Users/harshporwal/Desktop/MAIN/AI_NLP/words_alpha.txt', 'r') as word_file:
+        with open('/Users/harshporwal/Desktop/MAIN/AI_NLP/Capstone Final/words_alpha.txt', 'r') as word_file:
             valid_words = set(word_file.read().split())
         return valid_words
     except Exception as e:
@@ -86,7 +86,7 @@ def openmyfile(file_name):
     print(f"Loading questions from file: {file_name}")  # Debug print
     
     # Adjust the path as needed for your system
-    loc = f"/Users/harshporwal/Desktop/MAIN/AI_NLP/Questions/{fileQ}.xlsx"
+    loc = f"/Users/harshporwal/Desktop/MAIN/AI_NLP/Capstone Final/Questions/{fileQ}.xlsx"
     print(f"Full path: {loc}")  # Debug print
     
     if os.path.exists(loc):
@@ -529,65 +529,73 @@ class ReportWindow(tk.Toplevel):
         ).pack()
 
     def evaluate_single_answer(self, answer_text, sample_answers, keywords, factors):
-        """Evaluate a single answer and return metrics."""
-        # Initialize metrics
+        """Evaluate a single answer with stricter rules and return metrics."""
         similarity = 0
         grammar_score = 0
         keyword_score = 0
         keyword_order = 0
-        
-        # Calculate grammar score
+
+        # Load valid English words
         text_words = answer_text.strip().split()
         english_words = load_words()
         valid_words = 0
-        
+
         if text_words:
             for word in text_words:
                 temp = word.lower().rstrip('.')
                 if temp in english_words:
                     valid_words += 1
             grammar_score = valid_words / len(text_words)
-        
-        # Calculate similarity with sample answers
+
+        # Penalize low grammar accuracy
+        if grammar_score < 0.6:
+            grammar_score *= 0.8
+
+        # Compute similarity score
         if valid_words > 7:
             for sample in sample_answers:
-                similarity += (fuzz.token_set_ratio(sample, answer_text) + 
-                             fuzz.ratio(sample, answer_text))
-            similarity = similarity / (len(sample_answers) * 200)  # Normalize to 0-1
-        
-        # Calculate keyword score
+                similarity += (fuzz.token_set_ratio(sample, answer_text) + fuzz.ratio(sample, answer_text))
+            similarity = similarity / (len(sample_answers) * 200)
+
+        # Stricter keyword score
         found_keywords = []
         for word in text_words:
             lw = word.lower()
             if lw in keywords and lw not in found_keywords:
                 idx = keywords.index(lw)
-                if idx >= 2:
-                    keyword_score += 0.05
-                elif idx == 0:
-                    keyword_score += 0.1
-                elif idx == 1:
+                if idx == 0:
                     keyword_score += 0.08
+                elif idx == 1:
+                    keyword_score += 0.06
+                elif idx >= 2:
+                    keyword_score += 0.03
                 found_keywords.append(lw)
-        
-        # Calculate keyword order accuracy
-        if found_keywords:
+
+        # Keyword order scoring (only if 3+ keywords found)
+        if len(found_keywords) >= 3:
             order_check = []
             for i in range(len(found_keywords) - 1):
                 if keywords.index(found_keywords[i]) < keywords.index(found_keywords[i + 1]):
-                    order_check.extend([found_keywords[i], found_keywords[i + 1]])
-            keyword_order = len(order_check) / len(found_keywords) if found_keywords else 0
-        
-        # Calculate final score
+                    order_check.append(1)
+            keyword_order = len(order_check) / (len(found_keywords) - 1)
+
+        # Penalize very short answers
+        if len(text_words) < 25:
+            grammar_score *= 0.9
+            similarity *= 0.9
+            keyword_score *= 0.8
+
+        # Calculate weighted score
         raw_score = (
             (similarity * factors['frf']) +
             (keyword_score * factors['ktf']) +
             (keyword_order * factors['cmf']) +
             (grammar_score * factors['gmf'])
         )
-        
-        # Convert to 10-point scale
+
+        # Apply stricter 10-point conversion
         score = self.convert_to_ten_point_scale(raw_score)
-        
+
         return {
             'score': score,
             'similarity': similarity,
@@ -596,6 +604,7 @@ class ReportWindow(tk.Toplevel):
             'keyword_order': keyword_order,
             'found_keywords': found_keywords
         }
+
 
     def convert_to_ten_point_scale(self, r):
         """Convert raw score to 10-point scale."""
