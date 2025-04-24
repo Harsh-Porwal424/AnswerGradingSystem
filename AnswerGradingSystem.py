@@ -156,7 +156,7 @@ def ans_key(sheet):
 
 def get_available_subjects():
     """Get list of available subjects from the Questions folder."""
-    questions_dir = "/Users/harshporwal/Desktop/MAIN/AI_NLP/Questions"
+    questions_dir = "/Users/harshporwal/Desktop/MAIN/AI_NLP/Capstone Final/Questions"
     subjects = []
     
     # List all Excel files in the Questions directory
