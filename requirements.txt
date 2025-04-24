@@ -1,0 +1,21 @@
+# --- Core Libraries ---
+openpyxl
+fuzzywuzzy
+python-Levenshtein  # optional but speeds up fuzzywuzzy
+requests
+
+# --- Google Gemini (Generative AI) ---
+google-generativeai
+
+# --- OCR via Gemini (no tesseract needed) ---
+Pillow
+
+# --- NLP (optional spell/grammar correction) ---
+textblob
+nltk
+
+# --- Excel/Reports Enhancements ---
+xlsxwriter
+
+# --- Environment Variable Handling ---
+python-dotenv
